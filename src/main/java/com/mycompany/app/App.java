@@ -1,8 +1,11 @@
 package com.mycompany.app;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.KeyStore;
+import java.util.Enumeration;
 import java.util.UUID;
 
 import org.apache.log4j.Logger;
@@ -43,7 +46,12 @@ import org.hyperledger.fabric.gateway.Wallet;
 // chaincode name hardcoded to 'marbles'
 // Using identity for 'user1' (previously created using the enrollment function against a running Fabric CA); path to the wallet is hardcoded below!
 // Using the connection profile for the first-network (Org1), path is hardcoded below!
-
+//
+// Sample uses SoftHSM as the test HSM.
+// SunPKCS11.jar is in $JAVA_HOME/lib/ext
+// Need to create a config file as per https://docs.oracle.com/javase/8/docs/technotes/guides/security/p11guide.html#Config
+// Once config file is created, you can create the ServiceProvider entry in java.security
+//
 // mvn compile - compiles the code 
 // mvn exec:java -Dexec.mainClass="com.mycompany.app.App" - runs the app
 
@@ -55,15 +63,27 @@ public class App {
     public static void main(String[] args) throws Exception {
         logger.info("Starting Fabric client application...");
 
+        KeyStore ks = KeyStore.getInstance("PKCS11");
+        try {
+            ks.load(null, "1234".toCharArray()); 
+        } catch(Exception e) {
+            e.printStackTrace();
+            logger.error("Something went wrong loading the KeyStore: " + e.getMessage());
+        }
+
+        Enumeration<String> enumAlias = ks.aliases();
+        while (enumAlias.hasMoreElements()) {
+            System.out.println(enumAlias.nextElement());
+        }
         // Load an existing wallet holding identities used to access the network.
-        Path walletDirectory = Paths.get("/Users/olivieri/git/fabric-samples/fabcar/javascript/wallet");
-        Wallet wallet = Wallet.createFileSystemWallet(walletDirectory);
+        Path walletDirectory = Paths.get(System.getProperty("user.home"),".fabric-vscode/wallets/local_fabric_wallet");
+        Wallet wallet = HSMWallet.createHSMWallet(ks, walletDirectory);
 
         // Path to a common connection profile describing the network.
-        Path networkConfigFile = Paths.get("/Users/olivieri/git/fabric-samples/first-network/connection-org1.json");
+        Path networkConfigFile = Paths.get(System.getProperty("user.home"),".fabric-vscode/gateways/local_fabric/local_fabric.json");
 
         // Configure the gateway connection used to access the network.
-        Gateway.Builder builder = Gateway.createBuilder().identity(wallet, "user1").networkConfig(networkConfigFile);
+        Gateway.Builder builder = Gateway.createBuilder().identity(wallet, "admin").networkConfig(networkConfigFile);
         // .discovery(true);
 
         // Create a gateway connection
@@ -71,8 +91,7 @@ public class App {
 
             // Obtain a smart contract deployed on the network.
             Network network = gateway.getNetwork("mychannel");
-            // Contract contract = network.getContract("fabcar");
-            Contract contract = network.getContract("marbles");
+            Contract contract = network.getContract("marbles02");
 
             byte[] result;
             UUID uuid = UUID.randomUUID();
@@ -81,21 +100,11 @@ public class App {
             // Insert new marble first
             logger.info("About to create a new marble... invoking initMarble() method in chaincode...");
             result = contract.submitTransaction("initMarble", marbleName, "blue", "35", "phil collins");
-            // logger.info(new String(result, StandardCharsets.UTF_8));
+            logger.info("Result from creating new marble: " + new String(result, StandardCharsets.UTF_8));
 
-            // result = contract.evaluateTransaction("queryAllCars");
             logger.info("About to call readMarble() method in chaincode...");
             result = contract.evaluateTransaction("readMarble", marbleName);
             logger.info("Result from calling readMarble: " + new String(result, StandardCharsets.UTF_8));
-
-            // Submit transactions that store state to the ledger.
-            // byte[] createCarResult = contract.submitTransaction("createCar", "CAR10",
-            // "VW", "Polo", "Grey", "Ricardo");
-            // System.out.println(new String(createCarResult, StandardCharsets.UTF_8));
-
-            // Evaluate transactions that query state from the ledger.
-            // byte[] queryAllCarsResult = contract.evaluateTransaction("queryAllCars");
-            // System.out.println(new String(queryAllCarsResult, StandardCharsets.UTF_8));
 
         } catch (Exception e) {
             // oops
