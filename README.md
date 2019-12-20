@@ -1,83 +1,101 @@
-Execution:
 
+# Integration of Hyperledger Fabric Java Gateway with HSM
+This document contains the instructions to set up an HSM and configure the system so that the Hyperledger Fabric Java Gateway can make use of the HSMWallet.  
+  
+This code has been tested successfully using the AWS CloudHM.
+However, when testing with the SoftHSM, there is an issue that prevents a successful execution:   
+```  
+java.lang.ClassCastException: class sun.security.pkcs11.P11Key$P11PrivateKey cannot be cast to class java.security.interfaces.ECPrivateKey (sun.security.pkcs11.P11Key$P11PrivateKey is in module jdk.crypto.cryptoki of loader 'platform'; java.security.interfaces.ECPrivateKey is in module java.base of loader 'bootstrap')
+```   
+
+## Setup
+
+This set of instructions apply to an Ubuntu 16.04 VM:
+
+#### Installing SoftHSM:  
+`sudo apt-get install -y softhsm`  
+`mkdir -p $HOME/lib/softhsm/tokens`  
+`cd $HOME/lib/softhsm/`  
+`echo "directories.tokendir = $PWD/tokens" > softhsm2.conf`  
+
+#### Configuring local SoftHSM environment 
+`export SOFTHSM2_CONF=$HOME/lib/softhsm/softhsm2.conf`  
+`echo "export SOFTHSM2_CONF=$HOME/lib/softhsm/softhsm2.conf" > $HOME/.bashrc`  
+`softhsm2-util --init-token --slot 0 --label "hlf_client" --so-pin 1234 --pin 1234`  
+
+#### Checking the HSM is properly initialized
+
+Running this command:
+`softhsm2-util --show-slots` should result in: 
+**IMPORTANT:** Make note of the Slot number. In this example: 1227366935
 ```
-Ricardos-MacBook-Pro-9:java-marbles-client olivieri$ mvn exec:java -Dexec.mainClass="com.mycompany.app.App"
-[INFO] Scanning for projects...
-[INFO] 
-[INFO] ----------------------< com.mycompany.app:my-app >----------------------
-[INFO] Building my-app 1.0-SNAPSHOT
-[INFO] --------------------------------[ jar ]---------------------------------
-[INFO] 
-[INFO] --- exec-maven-plugin:1.6.0:java (default-cli) @ my-app ---
-[com.mycompany.app.App.main()] INFO  com.mycompany.app.App  - Starting Fabric client application...
-[com.mycompany.app.App.main()] INFO  com.mycompany.app.App  - About to create a new marble... invoking initMarble() method in chaincode...
-[com.mycompany.app.App.main()] INFO  com.mycompany.app.App  - About to call readMarble() method in chaincode...
-[com.mycompany.app.App.main()] INFO  com.mycompany.app.App  - Result from calling readMarble: {"color":"blue","docType":"marble","name":"0a61e932-ab2e-48b4-8c58-f6a2087b53d4","owner":"tom","size":35}
-[com.mycompany.app.App.main()] INFO  com.mycompany.app.App  - Finished executing Fabric client application...
-[WARNING] thread Thread[grpc-default-worker-ELG-1-1,5,com.mycompany.app.App] was interrupted but is still alive after waiting at least 14997msecs
-[WARNING] thread Thread[grpc-default-worker-ELG-1-1,5,com.mycompany.app.App] will linger despite being asked to die via interruption
-[WARNING] thread Thread[grpc-default-executor-0,5,com.mycompany.app.App] will linger despite being asked to die via interruption
-[WARNING] thread Thread[grpc-default-worker-ELG-1-2,5,com.mycompany.app.App] will linger despite being asked to die via interruption
-[WARNING] thread Thread[grpc-default-worker-ELG-1-3,5,com.mycompany.app.App] will linger despite being asked to die via interruption
-[WARNING] thread Thread[grpc-default-worker-ELG-1-4,5,com.mycompany.app.App] will linger despite being asked to die via interruption
-[WARNING] thread Thread[pool-3-thread-1,5,com.mycompany.app.App] will linger despite being asked to die via interruption
-[WARNING] thread Thread[grpc-default-worker-ELG-1-5,5,com.mycompany.app.App] will linger despite being asked to die via interruption
-[WARNING] thread Thread[grpc-default-worker-ELG-1-6,5,com.mycompany.app.App] will linger despite being asked to die via interruption
-[WARNING] thread Thread[grpc-default-worker-ELG-1-7,5,com.mycompany.app.App] will linger despite being asked to die via interruption
-[WARNING] thread Thread[grpc-default-worker-ELG-1-8,5,com.mycompany.app.App] will linger despite being asked to die via interruption
-[WARNING] thread Thread[grpc-default-worker-ELG-1-9,5,com.mycompany.app.App] will linger despite being asked to die via interruption
-[WARNING] thread Thread[grpc-default-worker-ELG-1-10,5,com.mycompany.app.App] will linger despite being asked to die via interruption
-[WARNING] thread Thread[grpc-default-worker-ELG-1-11,5,com.mycompany.app.App] will linger despite being asked to die via interruption
-[WARNING] thread Thread[grpc-default-worker-ELG-1-12,5,com.mycompany.app.App] will linger despite being asked to die via interruption
-[WARNING] thread Thread[grpc-default-worker-ELG-1-13,5,com.mycompany.app.App] will linger despite being asked to die via interruption
-[WARNING] thread Thread[grpc-default-worker-ELG-1-14,5,com.mycompany.app.App] will linger despite being asked to die via interruption
-[WARNING] thread Thread[grpc-default-worker-ELG-1-15,5,com.mycompany.app.App] will linger despite being asked to die via interruption
-[WARNING] thread Thread[grpc-default-worker-ELG-1-16,5,com.mycompany.app.App] will linger despite being asked to die via interruption
-[WARNING] thread Thread[pool-1-thread-1,5,com.mycompany.app.App] will linger despite being asked to die via interruption
-[WARNING] thread Thread[pool-1-thread-2,5,com.mycompany.app.App] will linger despite being asked to die via interruption
-[WARNING] thread Thread[pool-1-thread-3,5,com.mycompany.app.App] will linger despite being asked to die via interruption
-[WARNING] thread Thread[pool-1-thread-4,5,com.mycompany.app.App] will linger despite being asked to die via interruption
-[WARNING] thread Thread[pool-1-thread-5,5,com.mycompany.app.App] will linger despite being asked to die via interruption
-[WARNING] thread Thread[pool-1-thread-6,5,com.mycompany.app.App] will linger despite being asked to die via interruption
-[WARNING] thread Thread[pool-1-thread-7,5,com.mycompany.app.App] will linger despite being asked to die via interruption
-[WARNING] thread Thread[pool-1-thread-8,5,com.mycompany.app.App] will linger despite being asked to die via interruption
-[WARNING] thread Thread[pool-1-thread-9,5,com.mycompany.app.App] will linger despite being asked to die via interruption
-[WARNING] thread Thread[grpc-default-executor-1,5,com.mycompany.app.App] will linger despite being asked to die via interruption
-[WARNING] NOTE: 28 thread(s) did not finish despite being asked to  via interruption. This is not a problem with exec:java, it is a problem with the running code. Although not serious, it should be remedied.
-[WARNING] Couldn't destroy threadgroup org.codehaus.mojo.exec.ExecJavaMojo$IsolatedThreadGroup[name=com.mycompany.app.App,maxpri=10]
-java.lang.IllegalThreadStateException
-    at java.lang.ThreadGroup.destroy (ThreadGroup.java:778)
-    at org.codehaus.mojo.exec.ExecJavaMojo.execute (ExecJavaMojo.java:321)
-    at org.apache.maven.plugin.DefaultBuildPluginManager.executeMojo (DefaultBuildPluginManager.java:137)
-    at org.apache.maven.lifecycle.internal.MojoExecutor.execute (MojoExecutor.java:210)
-    at org.apache.maven.lifecycle.internal.MojoExecutor.execute (MojoExecutor.java:156)
-    at org.apache.maven.lifecycle.internal.MojoExecutor.execute (MojoExecutor.java:148)
-    at org.apache.maven.lifecycle.internal.LifecycleModuleBuilder.buildProject (LifecycleModuleBuilder.java:117)
-    at org.apache.maven.lifecycle.internal.LifecycleModuleBuilder.buildProject (LifecycleModuleBuilder.java:81)
-    at org.apache.maven.lifecycle.internal.builder.singlethreaded.SingleThreadedBuilder.build (SingleThreadedBuilder.java:56)
-    at org.apache.maven.lifecycle.internal.LifecycleStarter.execute (LifecycleStarter.java:128)
-    at org.apache.maven.DefaultMaven.doExecute (DefaultMaven.java:305)
-    at org.apache.maven.DefaultMaven.doExecute (DefaultMaven.java:192)
-    at org.apache.maven.DefaultMaven.execute (DefaultMaven.java:105)
-    at org.apache.maven.cli.MavenCli.execute (MavenCli.java:956)
-    at org.apache.maven.cli.MavenCli.doMain (MavenCli.java:288)
-    at org.apache.maven.cli.MavenCli.main (MavenCli.java:192)
-    at sun.reflect.NativeMethodAccessorImpl.invoke0 (Native Method)
-    at sun.reflect.NativeMethodAccessorImpl.invoke (NativeMethodAccessorImpl.java:62)
-    at sun.reflect.DelegatingMethodAccessorImpl.invoke (DelegatingMethodAccessorImpl.java:43)
-    at java.lang.reflect.Method.invoke (Method.java:498)
-    at org.codehaus.plexus.classworlds.launcher.Launcher.launchEnhanced (Launcher.java:282)
-    at org.codehaus.plexus.classworlds.launcher.Launcher.launch (Launcher.java:225)
-    at org.codehaus.plexus.classworlds.launcher.Launcher.mainWithExitCode (Launcher.java:406)
-    at org.codehaus.plexus.classworlds.launcher.Launcher.main (Launcher.java:347)
-[INFO] ------------------------------------------------------------------------
-[INFO] BUILD SUCCESS
-[INFO] ------------------------------------------------------------------------
-[INFO] Total time:  43.311 s
-[INFO] Finished at: 2019-10-02T16:45:54-04:00
-[INFO] ------------------------------------------------------------------------
-Ricardos-MacBook-Pro-9:java-marbles-client olivieri$
-```
+Available slots:
+Slot 1227366935
+    Slot info:
+        Description:      SoftHSM slot ID 0x49282217                                      
+        Manufacturer ID:  SoftHSM project                 
+        Hardware version: 2.2
+        Firmware version: 2.2
+        Token present:    yes
+    Token info:
+        Manufacturer ID:  SoftHSM project                 
+        Model:            SoftHSM v2      
+        Hardware version: 2.2
+        Firmware version: 2.2
+        Serial number:    07b731bf49282217
+        Initialized:      yes
+        User PIN init.:   yes
+        Label:            HLF_Wallet                      
+Slot 1
+    Slot info:
+        Description:      SoftHSM slot ID 0x1 
+```  
+
+#### Setting up Java Security to integrate with the SoftHSM
+From the folder: `$JAVA_HOME/conf/Security`  
+
+1. Edit the java.security SunPKCS11 provider  
+   `vi java.security`  
+   locate the line `security.provider.12=SunPKCS11` and modify it so it looks as follow:
+    ```
+    security.provider.12=SunPKCS11 ${java.home}/conf/security/pkcs11.cfg
+    ```
+1. Create the pkcs11.cfg config file  
+   File must be located under `${java.home}/conf/security/pkcs11.cfg`
+   Content must be:
+   ```
+    library=/usr/lib/softhsm/libsofthsm2.so
+    name=softhsm2
+    slot=1227366935
+    ```
+    **IMPORTANT** Note that the slot number must match the one you noted previously.
+
+#### Importing the admin cert in the Java SunPKCS11 KeyStore  
+From the wallet directory of the `admin` identity, run the following commands:  
+
+1. Extract the certificate from the admin json file.  
+`jq -r .enrollment.identity.certificate admin > admin-cert.pem`  
+
+2. Convert the certificate and private key to the PKCS12 format.  
+`openssl pkcs12 -export -in admin-cert.pem -inkey 1ae0690a6994514b0200a5d3aa524f90fe17e37f0200a6a5e38f96664f630f89-priv  -out admin.p12`  
+
+3.  Import the PKCS12 format to the SoftHSM KeyStore.
+`$JAVA_HOME/bin/keytool -importkeystore -deststorepass 1234 -destkeystore NONE -deststoretype PKCS11 -srckeystore admin.12 -srcstoretype PKCS12`
+
+4. Rename the KeyStore alias from `1` to `admin`  
+   `$JAVA_HOME/bin/keytool -changealias -keystore NONE -storetype PKCS11 -alias "1" -destalias "admin"`
+
+### Running the sample  
+
+Assuming the local Fabric network is up, the channel is defined and the smart contract is deployed (Marbles02) then run the following:
+
+Note that the application refers to the folders under the local home directory `.fabric-vscode` to find the gateway and wallets.
+
+1. Compile the code  
+   `mvn compile`  
+
+2. Run the application  
+   `mvn exec:java -Dexec.mainClass="com.mycompany.app.App"`  
 
 References:
 * [Building Java Applications](https://guides.gradle.org/building-java-applications/)

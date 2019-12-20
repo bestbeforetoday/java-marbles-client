@@ -25,10 +25,14 @@ import javax.json.JsonObject;
 import javax.json.JsonReader;
 import javax.json.JsonWriter;
 
+import org.apache.log4j.Logger;
 import org.apache.commons.io.FileUtils;
 
 
 public class HSMWalletImpl implements HSMWallet {
+    // logger
+    final static Logger logger = Logger.getLogger(HSMWalletImpl.class);
+
     private final Path basePath;
     private final KeyStore keyStore;
 
@@ -65,7 +69,7 @@ public class HSMWalletImpl implements HSMWallet {
 
     @Override
     public Identity get(final String label) throws IOException {
-        System.out.println("Getting label " + label);
+        logger.info("Getting label " + label);
         final Path idFile = basePath.resolve(Paths.get(label, label));
         if (Files.exists(idFile)) {
             try (BufferedReader fr = Files.newBufferedReader(idFile)) {
@@ -98,10 +102,9 @@ public class HSMWalletImpl implements HSMWallet {
 
     private PrivateKey loadPrivateKey(final String label) throws IOException {
         try {
-            System.out.println("Retrieving PrivateKey using label " + label);
-            final PrivateKey privKey = (PrivateKey) keyStore.getKey("1", null);
+            final PrivateKey privKey = (PrivateKey) keyStore.getKey(label, null);
 
-            System.out.println("Algo = " + privKey.getAlgorithm());
+            logger.info("Algo = " + privKey.getAlgorithm());
             if (privKey == null) {
                 throw new UnrecoverableKeyException("Could not find label " + label + " in KeyStore from security provider " + keyStore.getProvider().getName());
             }
