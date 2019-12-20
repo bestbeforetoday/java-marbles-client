@@ -26,7 +26,7 @@ This set of instructions apply to an Ubuntu 16.04 VM:
 #### Checking the HSM is properly initialized
 
 Running this command:
-`softhsm2-util --show-slots` should result in: 
+`softhsm2-util --show-slots` should result in:   
 **IMPORTANT:** Make note of the Slot number. In this example: 1227366935
 ```
 Available slots:
